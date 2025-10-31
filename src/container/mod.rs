@@ -122,9 +122,11 @@ pub fn run_bench(target: Target, cargo_args: Vec<OsString>) -> Result<()> {
 
     match engine_data.engine {
         // TODO: This flag will ignore the PODMAN_USERNS environment variable
-        Engine::Podman => up_command.arg("--userns=host"),
-        Engine::Docker => todo!(),
-    };
+        Engine::Podman => {
+            up_command.arg("--userns=host");
+        }
+        Engine::Docker => {} // TODO: implement
+    }
 
     up_command.arg(format!(
         "--security-opt=seccomp={}",
