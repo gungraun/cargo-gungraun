@@ -1,3 +1,6 @@
+// spell-checker: ignore customisation customisations distrooptions ddropbear
+// spell-checker: ignore randomised reexec
+
 /*
                      > > > Read This < < <
 

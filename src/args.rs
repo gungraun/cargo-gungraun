@@ -45,7 +45,7 @@ pub struct Args {
 impl Args {
     pub fn print_command_help(&self) {
         println!("This is the command help");
-        todo!();
+        // TODO: implement
     }
 
     /// TODO: DOCS

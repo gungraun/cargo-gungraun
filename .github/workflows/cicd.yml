@@ -31,6 +31,10 @@ jobs:
           key: deny-cargo-registry
       - uses: taiki-e/install-action@cargo-deny
       - uses: taiki-e/install-action@just
+      - name: Lock msrv dependencies
+        run: cargo +stable generate-lockfile
+        env:
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
       - name: Check advisories
         run: just args='--deny warnings' deny advisories
       - name: Check bans licenses sources

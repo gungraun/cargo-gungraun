@@ -5,6 +5,7 @@ armeabihf
 armel
 armv
 autogen
+autopurge
 bindgen
 binfmt
 binutils
@@ -16,6 +17,7 @@ clippy
 coreutils
 cpio
 cpus
+dbclient
 debhelper
 depmod
 destdir
@@ -23,6 +25,7 @@ devpts
 devtmpfs
 dockeruser
 docsrs
+dotgraphs
 dowild
 dropbear
 dropbearkey
@@ -43,6 +46,7 @@ idep
 illumos
 indexmap
 indexset
+inetutils
 insmod
 kmod
 kversion
@@ -74,8 +78,10 @@ mipsel
 mipsisa
 msrv
 nanomips
+netcat
 netfs
 newc
+noninteractive
 nonroot
 pathbuf
 peekable
