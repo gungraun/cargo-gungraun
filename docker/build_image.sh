@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # spell-checker: ignore pnet filesyms oversion libcrypt ldconfig netcat lintian
-# spell-checker: ignore armhf armmp loongson powerpcspe trixie octeon
+# spell-checker: ignore armhf armmp loongson powerpcspe trixie octeon vmlinu
+# spell-checker: ignore vmlinux
 
 set -e
 
@@ -32,7 +33,7 @@ debian_linux_image() {
     image="linux-image-arm64"
     ;;
   mips)
-    # TODO: Unsupported since debian 11
+    # TODO: Unsupported since bullseye
     echo "mips is unsupported" >&2
     exit 1
     ;;
@@ -66,9 +67,8 @@ debian_linux_image() {
     image="linux-image-s390x"
     ;;
   riscv64)
-    # TODO: Supported since trixie but not bookworm
-    echo "risc64 is unsupported" >&2
-    exit 1
+    # Requires trixie instead of bookwork
+    image="linux-image-riscv64"
     ;;
   *)
     bail "Unable to find a linux image for debian architecture '$debian_arch'"
@@ -121,8 +121,9 @@ download_packages_recursive \
   libcrypt1:"$debian_arch" \
   zlib1g:"$debian_arch" \
   libc6-dbg:"$debian_arch" \
+  libc-bin:"$debian_arch" \
   busybox:"$debian_arch" \
-  ncurses-base
+  ncurses-term
 
 download_packages \
   "$(debian_linux_image "$debian_arch")"
@@ -131,14 +132,12 @@ for dep in *; do
   dpkg -x "$dep" "$root_dir"
 done
 
-ldconfig -vr "$root_dir"
-ldconfig -pr "$root_dir"
-
 ################################################################################
 ## Finish the kernel
 ################################################################################
 
-cp -v "${root_dir}/boot/vmlinuz"* "${qemu_dir}/kernel"
+# The kernel can be named vmlinux-* (e.g. powerpc64le) or vmlinuz-*
+cp -v "${root_dir}/boot/vmlinu"* "${qemu_dir}/kernel"
 
 ################################################################################
 ## Extract and install the kernel modules for the image
@@ -243,9 +242,13 @@ mkdir -p /run/lock
 
 mount -t tmpfs none /tmp
 
+mount
+
 find /lib/modules -name '*.ko' -type f -print0 |
   xargs -0 -I {} basename -s .ko {} |
   while read -r mod; do modprobe "$mod"; done
+
+ldconfig -v
 
 ip addr add 127.0.0.1/8 dev lo
 ip link set lo up

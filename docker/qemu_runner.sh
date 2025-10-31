@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # spell-checker: ignore netdev hostfwd nographic fsdev maxmem minmem memuse
-# spell-checker: ignore backgrounding numcpu logfile dbclient
+# spell-checker: ignore backgrounding numcpu logfile dbclient virt
 
 print_message() {
   local format
@@ -82,23 +82,38 @@ if_trace set -x
     machine=s390-ccw-virtio
     nic_model=virtio-net-ccw
     ;;
+  arm | aarch64)
+    machine='virt'
+    ;;
   *) ;;
   esac
 
-  # 2G or if the total memory is smaller then the total
+  # 1G or if the total memory is smaller then the total
   minmem=$(awk '/MemTotal:/ {
     mem_total = $2 / (1024 * 1024);
-    printf "%.1f", (mem_total < 2) ? mem_total : 2;
+    printf "%.1f", (mem_total < 1) ? mem_total : 1;
     exit;
   }' /proc/meminfo)
 
-  # Available memory in gigabytes divided by 2 to keep some headroom for the os
+  # Available memory in gigabytes divided by 2 to keep some headroom
   mem_available=$(awk '/MemAvailable:/ {printf "%d", $2 / (1024 * 1024) / 2; exit}' /proc/meminfo)
-  memory=$(awk -v mem_available="$mem_available" -v minmem="$minmem" 'BEGIN {
-    result = (mem_available < minmem) ? minmem : mem_available;
-    printf "%.1fG\n", result;
-  }')
   numcpu="$(nproc)"
+
+  case "$qemu_arch" in
+  mips*)
+    memory=$(awk -v mem_available="$mem_available" -v minmem="$minmem" -v maxmem="2" 'BEGIN {
+      result = (mem_available < minmem) ? minmem : mem_available;
+      memory = (result <= maxmem) ? result : maxmem;
+      printf "%.1fG\n", memory;
+    }')
+    ;;
+  *)
+    memory=$(awk -v mem_available="$mem_available" -v minmem="$minmem" 'BEGIN {
+      result = (mem_available < minmem) ? minmem : mem_available;
+      printf "%.1fG\n", result;
+    }')
+    ;;
+  esac
 
   # These should already exist but for safety here again
   mkdir -p /target /workspace /gungraun_home

@@ -228,6 +228,29 @@ debian_toolchain_triple() {
   echo -n "${host_cpu}-${host_os}"
 }
 
+debian_tool_prefix() {
+  local rust_triple triple
+
+  rust_triple="${1:?The rust triple should be present}"
+  triple="$(debian_toolchain_triple "$rust_triple")"
+  echo -n "${triple/x86-64/x86_64}"
+}
+
+valgrind_toolchain_triple() {
+  local rust_triple host_cpu host_os
+
+  rust_triple="${1:?The rust triple should be present}"
+
+  IFS='-' read -r host_cpu _ host_os <<<"$rust_triple"
+
+  case "${host_cpu}" in
+  riscv64*) host_cpu=riscv64 ;;
+  *) ;;
+  esac
+
+  echo -n "${host_cpu}-${host_os}"
+}
+
 # Extract the debian architecture from the rust target triple
 #
 # Parameters:
@@ -259,7 +282,7 @@ debian_architecture() {
   mipsel-unknown-linux-gnu)
     arch="mipsel"
     ;;
-  mips64el-unknown-linux-gnu)
+  mips64el-unknown-linux-gnuabi64)
     arch="mips64el"
     ;;
   powerpc-unknown-linux-gnu)
@@ -344,53 +367,6 @@ qemu_architecture() {
   esac
 
   echo -n "$arch"
-}
-
-# Extracts the valgrind toolchain triple from the rust target triple
-#
-# Parameters:
-#   $1 - The rust target triple (x86_64-unknown-linux-gnu)
-#
-# Errors:
-#   If the rust target triple is in an invalid format
-valgrind_toolchain_triple() {
-  local rust_triple host_cpu host_os triple
-
-  rust_triple="${1:?The rust triple should be present}"
-
-  IFS='-' read -r host_cpu _ host_os <<<"$rust_triple"
-
-  # Mostly from valgrind repository configure script
-  case "${host_cpu}" in
-  i?86) ;;
-  x86_64 | amd64) ;;
-  powerpc64) ;;
-  powerpc64le) ;;
-  powerpc) ;;
-  s390x) ;;
-  armv8*) ;;
-  armv7*) ;;
-  arm*) ;;
-  aarch64*) ;;
-  mips) ;;
-  mipsel) ;;
-  mips64*) ;;
-  mipsisa64*) ;;
-  nanomips) ;;
-  riscv64) ;;
-  riscv64gc) host_cpu=riscv64 ;; # This spec is not recognized by valgrind
-  *)
-    bail "Invalid host cpu spec: '${host_cpu}' in '${rust_triple}'"
-    ;;
-  esac
-
-  triple=${host_cpu}-${host_os}
-  case $triple in
-  *-*-*) echo -n "$triple" ;;
-  *)
-    bail "Invalid target specification: '${rust_triple}'"
-    ;;
-  esac
 }
 
 # Finds kernel module dependencies recursively

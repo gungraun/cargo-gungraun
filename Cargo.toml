@@ -1,3 +1,7 @@
+# TODO: Revert exclusion of system-tests
+# [workspace]
+# members = ["system-tests"]
+
 [package]
 authors = ["gamma0987 <gamma0987@posteo.de>"]
 # TODO: categories
