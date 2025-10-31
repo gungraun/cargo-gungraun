@@ -115,6 +115,7 @@ syscalls
 sysfs
 taplo
 tmpfs
+trixie
 userns
 valgrind
 vecdeque

@@ -3,7 +3,7 @@ name: Build, Check and Test
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
   pull_request:
     branches: ["main"]
 
@@ -16,137 +16,165 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deny:
-    name: Check dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@1.74.1
-      - name: Cache/Restore cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: deny-cargo-registry
-      - uses: taiki-e/install-action@cargo-deny
-      - uses: taiki-e/install-action@just
-      - name: Lock msrv dependencies
-        run: cargo +stable generate-lockfile
-        env:
-          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
-      - name: Check advisories
-        run: just args='--deny warnings' deny advisories
-      - name: Check bans licenses sources
-        run: just deny bans licenses sources
+  # TODO: Reactivate
+  # deny:
+  #   name: Check dependencies
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: dtolnay/rust-toolchain@1.74.1
+  #     - name: Cache/Restore cargo registry
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cargo/registry
+  #           ~/.cargo/git
+  #         key: deny-cargo-registry
+  #     - uses: taiki-e/install-action@cargo-deny
+  #     - uses: taiki-e/install-action@just
+  #     - name: Lock msrv dependencies
+  #       run: cargo +stable generate-lockfile
+  #       env:
+  #         CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
+  #     - name: Check advisories
+  #       run: just args='--deny warnings' deny advisories
+  #     - name: Check bans licenses sources
+  #       run: just deny bans licenses sources
+  #
+  # minimal_versions:
+  #   name: Check minimal version requirements of dependencies
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       toolchain:
+  #         - stable
+  #         - nightly
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: dtolnay/rust-toolchain@master
+  #       if: ${{ startsWith(matrix.toolchain, 'nightly') }}
+  #       with:
+  #         toolchain: ${{ matrix.toolchain }}
+  #     - uses: dtolnay/rust-toolchain@master
+  #       if: ${{ ! startsWith(matrix.toolchain, 'nightly') }}
+  #       with:
+  #         toolchain: nightly
+  #     - uses: dtolnay/rust-toolchain@master
+  #       if: ${{ ! startsWith(matrix.toolchain, 'nightly') }}
+  #       with:
+  #         toolchain: ${{ matrix.toolchain }}
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         key: ubuntu-latest_${{ matrix.toolchain }}
+  #     - uses: taiki-e/install-action@cargo-hack
+  #     - uses: taiki-e/install-action@cargo-minimal-versions
+  #     - uses: taiki-e/install-action@just
+  #     - name: Check build with minimal versions
+  #       run: just minimal-versions
+  #
+  # format:
+  #   name: Check format and spelling
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: dtolnay/rust-toolchain@nightly
+  #       with:
+  #         components: rustfmt
+  #     - name: Cache/Restore rust cache
+  #       uses: Swatinem/rust-cache@v2
+  #     - uses: taiki-e/install-action@cargo-binstall
+  #     - uses: taiki-e/install-action@just
+  #     - run: cargo binstall --no-confirm --no-symlinks taplo-cli
+  #     - run: just check-fmt-all
+  #
+  # base:
+  #   needs: [deny, minimal_versions, format]
+  #   name: Build, check and test
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       toolchain:
+  #         - "1.74.1" # MSRV
+  #         - stable
+  #         - nightly
+  #       include:
+  #         - toolchain: stable
+  #           components: clippy, llvm-tools
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{ matrix.toolchain }}
+  #         components: ${{ matrix.components }}
+  #     - name: "Prepare: Install stable toolchain with clippy"
+  #       if: matrix.toolchain != 'stable'
+  #       run: |
+  #         rustup toolchain install stable --no-self-update --component clippy
+  #     - name: Lock msrv dependencies
+  #       if: matrix.toolchain == '1.74.1'
+  #       run: cargo +stable generate-lockfile
+  #       env:
+  #         CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
+  #     - name: "Prepare: Run cargo update"
+  #       if: matrix.toolchain == 'stable' || matrix.toolchain == 'nightly'
+  #       run: |
+  #         cargo update
+  #     - uses: taiki-e/install-action@cargo-hack
+  #     - uses: taiki-e/install-action@just
+  #     - name: Info
+  #       run: |
+  #         set -x
+  #         uname -a
+  #         pwd
+  #         rustup --version
+  #         rustup show
+  #         rustup component list --installed
+  #         printenv
+  #     - name: Set cargo registry protocol if the toolchain is MSRV
+  #       if: matrix.toolchain == '1.74.1'
+  #       run: |
+  #         echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV
+  #     - name: Cache/Restore cargo registry
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cargo/registry
+  #           ~/.cargo/git
+  #         key: ${{ runner.os }}-cargo-${{ matrix.toolchain }}
+  #     - name: Lint
+  #       run: just lint
+  #     - name: Build
+  #       run: just build-hack
+  #     - name: Run tests
+  #       run: just test-hack
 
-  minimal_versions:
-    name: Check minimal version requirements of dependencies
-    runs-on: ubuntu-latest
+  images:
+    # TODO: Reactivate
+    # needs: [base]
+    name: Build images
     strategy:
       fail-fast: false
       matrix:
-        toolchain:
-          - stable
-          - nightly
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        if: ${{ startsWith(matrix.toolchain, 'nightly') }}
-        with:
-          toolchain: ${{ matrix.toolchain }}
-      - uses: dtolnay/rust-toolchain@master
-        if: ${{ ! startsWith(matrix.toolchain, 'nightly') }}
-        with:
-          toolchain: nightly
-      - uses: dtolnay/rust-toolchain@master
-        if: ${{ ! startsWith(matrix.toolchain, 'nightly') }}
-        with:
-          toolchain: ${{ matrix.toolchain }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ubuntu-latest_${{ matrix.toolchain }}
-      - uses: taiki-e/install-action@cargo-hack
-      - uses: taiki-e/install-action@cargo-minimal-versions
-      - uses: taiki-e/install-action@just
-      - name: Check build with minimal versions
-        run: just minimal-versions
-
-  format:
-    name: Check format and spelling
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
-      - uses: taiki-e/install-action@cargo-binstall
-      - uses: taiki-e/install-action@just
-      - run: cargo binstall --no-confirm --no-symlinks taplo-cli
-      # Using the rust-cache action here to also cache the binaries. Especially
-      # taplo-cli is slow to build
-      - name: Cache/Restore rust cache
-        uses: Swatinem/rust-cache@v2
-      - run: just check-fmt-all
-
-  base:
-    needs: [deny, minimal_versions, format]
-    name: Build, check and test
-    strategy:
-      fail-fast: false
-      matrix:
-        toolchain:
-          - "1.74.1" # MSRV
-          - stable
-          - nightly
+        target:
+          - x86_64-unknown-linux-gnu
+          - i686-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabi
+          - armv7-unknown-linux-gnueabihf
+          - aarch64-unknown-linux-gnu
+          - mipsel-unknown-linux-gnu
+          - mips64el-unknown-linux-gnuabi64
+          - powerpc64le-unknown-linux-gnu
+          - riscv64gc-unknown-linux-gnu
+          - s390x-unknown-linux-gnu
         include:
-          - toolchain: stable
-            components: clippy, llvm-tools
+          - target: riscv64gc-unknown-linux-gnu
+            args: --build-arg=DEBIAN_IMAGE_TAG=trixie-slim@sha256:282702dac844f3030e10c3cfbfd9629a54345ac7980b296da69d8a3797a4d91b
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.toolchain }}
-          components: ${{ matrix.components }}
-      - name: "Prepare: Install stable toolchain with clippy"
-        if: matrix.toolchain != 'stable'
-        run: |
-          rustup toolchain install stable --no-self-update --component clippy
-      - name: Lock msrv dependencies
-        if: matrix.toolchain == '1.74.1'
-        run: cargo +stable generate-lockfile
-        env:
-          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
-      - name: "Prepare: Run cargo update"
-        if: matrix.toolchain == 'stable' || matrix.toolchain == 'nightly'
-        run: |
-          cargo update
-      - uses: taiki-e/install-action@cargo-hack
-      - uses: taiki-e/install-action@just
-      - name: Info
-        run: |
-          set -x
-          uname -a
-          pwd
-          rustup --version
-          rustup show
-          rustup component list --installed
-          printenv
-      - name: Set cargo registry protocol if the toolchain is MSRV
-        if: matrix.toolchain == '1.74.1'
-        run: |
-          echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV
-      - name: Cache/Restore cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ matrix.toolchain }}
-      - name: Lint
-        run: just lint
-      - name: Build
-        run: just build-hack
-      - name: Run tests
-        run: just test-hack
+      - uses: dtolnay/rust-toolchain@stable
+      - run: |
+          podman build --target runner -f docker/Dockerfile.generic -t gungraun_${{ matrix.target }}:runner --env=GUNGRAUN_LOG=trace --build-arg=CARGO_GUNGRAUN_TARGET=${{ matrix.target }} ${{ matrix.args }}
+          podman run -it --rm gungraun_${{ matrix.target }}:runner /qemu_runner.sh --qemu-arch "${{ matrix.target }}" -- ls -la

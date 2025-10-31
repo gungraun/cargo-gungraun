@@ -13,7 +13,8 @@ version="${UTIL_LINUX_VERSION:?A util-linux version should be present}"
 main_version="$(IFS=. read -r major minor _ <<<"$version" && echo -n "${major}.${minor}")"
 
 dest_dir="${INTERNAL_KERNEL_BUILD_DIR:?The kernel build dir should be present}"
-toolchain=$(valgrind_toolchain_triple "${CARGO_GUNGRAUN_TARGET}")
+toolchain=$(debian_toolchain_triple "${CARGO_GUNGRAUN_TARGET}")
+tool_prefix="$(debian_tool_prefix "${CARGO_GUNGRAUN_TARGET}")"
 
 build_dir="${HOME}/util-linux"
 mkdir -p "$build_dir"
@@ -23,9 +24,9 @@ wget "https://www.kernel.org/pub/linux/utils/util-linux/v${main_version}/util-li
 tar xzf "util-linux-${version}.tar.gz"
 cd "util-linux-${version}"
 
-export CC="${toolchain}-gcc"
-export LD="${toolchain}-ld"
-export AR="${toolchain}-ar"
+export CC="${tool_prefix}-gcc"
+export LD="${tool_prefix}-ld"
+export AR="${tool_prefix}-ar"
 
 which "$CC" "$LD" "$AR"
 

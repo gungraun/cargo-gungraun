@@ -10,7 +10,8 @@ if_trace set -x
 
 version="${DROPBEAR_VERSION:?A dropbear version should be present}"
 dest_dir="${INTERNAL_KERNEL_BUILD_DIR:?The kernel build dir should be present}"
-toolchain=$(valgrind_toolchain_triple "${CARGO_GUNGRAUN_TARGET}")
+toolchain=$(debian_toolchain_triple "${CARGO_GUNGRAUN_TARGET}")
+tool_prefix=$(debian_tool_prefix "${CARGO_GUNGRAUN_TARGET}")
 debian_arch="$(debian_architecture "${CARGO_GUNGRAUN_TARGET}")"
 
 # To be sure since we install dropbear statically on the host
@@ -46,9 +47,9 @@ make PROGRAMS="dbclient dropbearkey scp" install
 
 make clean
 
-export CC="${toolchain}-gcc"
-export LD="${toolchain}-ld"
-export AR="${toolchain}-ar"
+export CC="${tool_prefix}-gcc"
+export LD="${tool_prefix}-ld"
+export AR="${tool_prefix}-ar"
 
 which "$CC" "$LD" "$AR"
 

@@ -12,6 +12,7 @@ version="${VALGRIND_VERSION:?A valgrind version should be present}"
 destdir="${1:?A destination directory for valgrind should be present}"
 valgrind_build_dir="${HOME}/valgrind"
 toolchain=$(valgrind_toolchain_triple "${CARGO_GUNGRAUN_TARGET}")
+tool_prefix=$(debian_tool_prefix "${CARGO_GUNGRAUN_TARGET}")
 
 install_temporary lbzip2
 
@@ -20,9 +21,9 @@ cd "$valgrind_build_dir"
 wget https://sourceware.org/pub/valgrind/valgrind-"${version}".tar.bz2
 tar xf valgrind-"${version}".tar.bz2
 
-export CC="${toolchain}-gcc"
-export LD="${toolchain}-ld"
-export AR="${toolchain}-ar"
+export CC="${tool_prefix}-gcc"
+export LD="${tool_prefix}-ld"
+export AR="${tool_prefix}-ar"
 
 which "$CC" "$LD" "$AR"
 
