@@ -1,0 +1,116 @@
+ARG CARGO_GUNGRAUN_TARGET=x86_64-unknown-linux-gnu
+ARG INTERNAL_KERNEL_BUILD_DIR=/qemu_root
+ARG DEBIAN_IMAGE_TAG=bookwork-slim@sha256:48fa1e32d5ad897f7748b4b67d1ffb9e2ec46f4129f037afa3456a99f937203a
+
+FROM debian:${DEBIAN_IMAGE_TAG} as common
+
+ARG CARGO_GUNGRAUN_TARGET
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY lib.sh /
+
+COPY prepare_common.sh /
+RUN /prepare_common.sh
+
+FROM common as valgrind
+
+ARG VALGRIND_VERSION=3.26.0
+ARG CARGO_GUNGRAUN_TARGET
+ARG INTERNAL_KERNEL_BUILD_DIR
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY install_valgrind.sh /
+RUN /install_valgrind.sh "${INTERNAL_KERNEL_BUILD_DIR}"
+
+RUN apt-get autopurge -y \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM common as dropbear
+
+ARG DROPBEAR_VERSION=2025.88
+ARG CARGO_GUNGRAUN_TARGET
+ARG INTERNAL_KERNEL_BUILD_DIR
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY install_dropbear.sh dropbear_options.h /
+RUN /install_dropbear.sh
+
+RUN apt-get autopurge -y \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM common as util-linux
+
+ARG UTIL_LINUX_VERSION=2.41.2
+ARG CARGO_GUNGRAUN_TARGET
+ARG INTERNAL_KERNEL_BUILD_DIR
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY install_util_linux.sh /
+RUN /install_util_linux.sh
+
+RUN apt-get autopurge -y \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM common as kernel
+ARG INTERNAL_KERNEL_BUILD_DIR
+
+COPY --from=valgrind "${INTERNAL_KERNEL_BUILD_DIR}" "${INTERNAL_KERNEL_BUILD_DIR}/"
+COPY --from=util-linux "${INTERNAL_KERNEL_BUILD_DIR}/usr/bin/setarch" "${INTERNAL_KERNEL_BUILD_DIR}/usr/bin/"
+COPY --from=dropbear "${INTERNAL_KERNEL_BUILD_DIR}" "${INTERNAL_KERNEL_BUILD_DIR}/"
+COPY --from=dropbear /usr/bin/dropbearkey /usr/bin/
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY build_image.sh /
+RUN /build_image.sh
+
+RUN apt-get autopurge -y \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM common as qemu
+
+ARG SLIRP_VERSION=4.9.1
+ARG QEMU_VERSION=10.0.4
+ARG CARGO_GUNGRAUN_TARGET
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY install_slirp.sh /
+RUN /install_slirp.sh
+
+# slirp installs the pkg-config files here
+ENV PKG_CONFIG_PATH=/usr/lib64/pkgconfig
+COPY install_qemu.sh /
+RUN /install_qemu.sh
+
+RUN apt-get autopurge -y \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM debian:${DEBIAN_IMAGE_TAG} as runner
+ARG INTERNAL_KERNEL_BUILD_DIR
+
+COPY --from=dropbear /usr/bin/dbclient \
+  /usr/bin/dropbearkey \
+  /usr/bin/scp \
+  /usr/bin/
+COPY --from=kernel /qemu /qemu/
+COPY --from=qemu /qemu_destdir /
+COPY --from=qemu /usr/lib64/libslirp.so.0.4.0 /usr/lib64/
+COPY --from=valgrind "${INTERNAL_KERNEL_BUILD_DIR}"/usr/include/valgrind /usr/include/valgrind/
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG CARGO_GUNGRAUN_TARGET
+ENV CARGO_GUNGRAUN_TARGET=${CARGO_GUNGRAUN_TARGET}
+
+COPY lib.sh setup_runner.sh /
+RUN /setup_runner.sh
+
+COPY runner.sh qemu_runner.sh bootstrap.sh /
+
+RUN rm /setup_runner.sh \
+  && apt-get autopurge -y \
+  && apt-get clean -y \
+  && rm -rf /var/lib/apt/lists/*

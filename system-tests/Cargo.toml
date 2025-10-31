@@ -1,0 +1,19 @@
+[package]
+name = "system-tests"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+criterion = { version = "0.7.0" }
+gungraun = { version = "0.17.0", path = "../../gungraun/gungraun" }
+
+[[bench]]
+name = "simple"
+path = "benches/simple.rs"
+harness = false
+
+[[bench]]
+name = "criterion"
+path = "benches/criterion.rs"
+harness = false

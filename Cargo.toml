@@ -1,3 +1,6 @@
+[workspace]
+members = ["system-tests"]
+
 [package]
 authors = ["gamma0987 <gamma0987@posteo.de>"]
 # TODO: categories
@@ -25,8 +28,23 @@ path = "src/main.rs"
 name = "cargo-gungraun"
 
 [dependencies]
+anyhow = "1"
+camino = "1.2"
+clap_lex = "0.7"
+colored = { version = ">=2.2, <4" }
+csv = "1"
+env_logger = { version = ">=0.7, <0.12" }
+hex = "0.4"
+home = "0.5"
+log = "0.4"
+rand = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+simplematch = "0.3.1"
+which = "8"
 
 [dev-dependencies]
+rstest = "0.26.1"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -40,6 +58,7 @@ pedantic = { level = "warn", priority = -1 }
 allow_attributes = "warn"
 arbitrary_source_item_ordering = "warn"
 assertions_on_result_states = "warn"
+bool_assert_comparison = "allow"
 branches_sharing_code = "warn"
 collection_is_never_read = "warn"
 create_dir = "warn"

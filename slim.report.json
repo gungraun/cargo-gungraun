@@ -1,0 +1,13 @@
+{
+  "document": "doc.report.command",
+  "version": "ov/command/images/1.0",
+  "engine": "linux/amd64|Aurora|1.41.5|4cc2b185c9cdcd6d0586246e21d8aecc5d847feb|2024-07-01_04:33:18AM",
+  "containerized": false,
+  "host_distro": {
+    "name": "Arch Linux",
+    "version": "",
+    "display_name": "Arch Linux"
+  },
+  "type": "images",
+  "state": "done"
+}

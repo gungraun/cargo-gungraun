@@ -20,6 +20,7 @@
     "*.stdout",
     "expected_stdout*",
     "expected_stderr*",
-    "**/*.svg"
+    "**/*.svg",
+    "**/seccomp.json"
   ]
 }

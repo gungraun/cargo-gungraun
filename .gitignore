@@ -1,5 +1,8 @@
 *.profraw
 lcov.info
+*.tar.gz
+*.tar.xz
+docker/pc-bios
 
 #--------------------------------------------------#
 # The following was generated with gitignore.nvim: #
